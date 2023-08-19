@@ -14,7 +14,7 @@ semaphore = None
 
 
 def parse_args():
-	parser = argparse.ArgumentParser(description="endUrl.py find final url after redirection for a list of urls read from stdin")
+	parser = argparse.ArgumentParser(description="urlFollow.py find final url after redirection for a list of urls read from stdin")
 	parser.add_argument("-i", "--input", action="store", dest="infile", help="input file [if none, stdin]", type=str, default=None)
 	parser.add_argument("-o", "--outfile", action="store", dest="outfile", type=str, help="Output file to write urls [if none, only stdout]", default=None)
 	parser.add_argument("-t", "--threads", action="store", dest="threads", type=int, default=4, help="Number of parallel threads [default 4]")
