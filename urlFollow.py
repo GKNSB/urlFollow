@@ -42,7 +42,7 @@ def handle_finding(future):
 
 			with lock:
 				if result:
-					sys.stdout.write(f"{result[1]}\n")
+					print(f"{result[1]}", flush=True)
 					if args.outfile:
 						realurls.append(result[1])
 					if args.redirectsfile:
