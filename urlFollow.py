@@ -3,14 +3,11 @@
 import sys
 import argparse
 import requests
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse, urlsplit
-from threading import Lock, Semaphore
 
 requests.packages.urllib3.disable_warnings()
-lock = Lock()
 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.5790.171 Safari/537.36"}
-semaphore = None
 
 
 def parse_args():
@@ -24,33 +21,18 @@ def parse_args():
 
 
 def check_url(base_url):
-	resp = requests.get(base_url, headers=headers, verify=False)
-	urlParts = urlsplit(resp.url)
-	realurl = f"{urlParts.scheme}://{urlParts.netloc}/"
+	try:
+		resp = requests.get(base_url, headers=headers, verify=False)
+		urlParts = urlsplit(resp.url)
+		realurl = f"{urlParts.scheme}://{urlParts.netloc}/"
 
-	return (base_url, realurl)
+		return (base_url, realurl)
 
-
-def handle_finding(future):
-	global semaphore, lock, realurls, transitions
-
-	semaphore.release()
-
-	if future.done():
-		if not future.exception():
-			result = future.result()
-
-			with lock:
-				if result:
-					print(f"{result[1]}", flush=True)
-					if args.outfile:
-						realurls.append(result[1])
-					if args.redirectsfile:
-						transitions.append(f"{result[0]}|{result[1]}")
+	except:
+		return None
 
 
 args = parse_args()
-semaphore = Semaphore(args.threads)
 realurls = []
 transitions = []
 urlsToTest = []
@@ -62,19 +44,20 @@ if args.infile:
 else:
 	urlsToTest = [line.strip("\n") for line in sys.stdin]
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as tpe:
-	for line in urlsToTest:
+with ThreadPoolExecutor(max_workers=args.threads) as tpe:
+	futures = [tpe.submit(check_url, url.strip()) for url in urlsToTest]
 
-		url = line.strip()
+	for finished in as_completed(futures):
+		res = finished.result()
 
-		semaphore.acquire()
-		try:
-			future = tpe.submit(check_url, url)
-			future.add_done_callback(handle_finding)
-		except:
-			semaphore.release()
+		if res:
+			print(res[1], flush=True)
 
-	tpe.shutdown(wait=True)
+			if args.outfile:
+				realurls.append(res[1])
+
+			if args.redirectsfile:
+				transitions.append(f"{res[0]}|{res[1]}")
 
 if args.outfile:
 	realurls = list(set(realurls))
