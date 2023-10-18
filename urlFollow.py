@@ -22,7 +22,7 @@ def parse_args():
 
 def check_url(base_url):
 	try:
-		resp = requests.get(base_url, headers=headers, verify=False)
+		resp = requests.get(base_url, headers=headers, verify=False, timeout=30)
 		urlParts = urlsplit(resp.url)
 		realurl = f"{urlParts.scheme}://{urlParts.netloc}/"
 
